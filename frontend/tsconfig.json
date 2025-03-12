@@ -8,6 +8,13 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "paths": {
+      "@store/*": ["store/*"],
+      "@pages/*": ["pages/*"],
+      "@/*": ["*"]
+    },
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
     "moduleResolution": "node",

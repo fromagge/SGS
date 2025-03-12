@@ -1,12 +1,21 @@
 import { defineConfig } from 'vite'
+import path from 'path'
 import react from '@vitejs/plugin-react-swc'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': 'http://localhost:3000', // Proxy API requests to NestJS server
     },
   },
-});
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      '@store': path.resolve(__dirname, 'src/store'),
+      '@pages': path.resolve(__dirname, 'src/pages'),
+    },
+  },
+})
