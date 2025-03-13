@@ -1,7 +1,16 @@
 import React from 'react';
 import HomeFooter from '@/components/HomeFooter';
+import axios from 'axios';
 
 const Login = () => {
+  const handleLogin = async () => {
+    const url = '/api/auth/login';
+    const res = await axios.get(url);
+    if (res.status === 200 && res.data.url) {
+      window.location.href = res.data.url;
+    }
+  };
+
   return (
     <div className="flex flex-col justify-center items-center h-screen w-full">
       <div className="flex flex-col justify-center items-center h-auto w-full mt-[-200px]">
@@ -18,7 +27,10 @@ const Login = () => {
         </div>
         <div className="flex flex-col justify-center items-center">
           <p className="text-sm mb-2 font-semibold text-gray-500">Login with</p>
-          <div className="min-w-[300px] bg-purple-400 p-4 rounded-md cursor-pointer hover:bg-purple-500">
+          <div
+            className="min-w-[300px] bg-purple-400 p-4 rounded-md cursor-pointer hover:bg-purple-500"
+            onClick={handleLogin}
+          >
             <img
               src="https://developer.constantcontact.com/images/ctct_ripple_logo_horizontal_white.svg"
               alt="Login with Constant Contact"

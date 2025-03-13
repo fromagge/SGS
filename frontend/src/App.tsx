@@ -5,6 +5,7 @@ import { RootState } from '@store/store';
 
 import Login from '@pages/Login';
 import NotFound from '@pages/NotFound';
+import AccessToken from '@pages/AccessToken';
 
 const App = () => {
   const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
@@ -15,11 +16,13 @@ const App = () => {
         {isLoggedIn ? (
           <>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </>
         ) : (
           // Public routes
           <>
             <Route path="/login" element={<Login />} />
+            <Route path="/access-token" element={<AccessToken />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
           </>
         )}
