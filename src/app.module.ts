@@ -5,9 +5,9 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ConfigModule } from '@nestjs/config';
 
 import { UserModule } from 'user/user.module';
-import { AuthGuard } from 'auth/auth.service';
 import { ContactModule } from 'contact/contact.module';
 import { AuthModule } from 'auth/auth.module';
+import { AuthGuard } from 'auth/auth.guard';
 
 @Module({
   imports: [

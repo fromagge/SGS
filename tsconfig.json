@@ -12,7 +12,9 @@
     "baseUrl": "./src",
     "paths": {
       "user/*": ["user/*"],
-      "contact/*": ["contact/*"]
+      "contact/*": ["contact/*"],
+      "types/*": ["types/*"],
+      "auth/*": ["auth/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

@@ -8,22 +8,25 @@ const AccessToken = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('AccessToken');
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const refreshToken = params.get('refresh_token') ?? '';
     const expiresIn = params.get('expires_in') ?? 0;
-    console.log("Monda verga picha culo")
+
     if (token && expiresIn) {
       dispatch(
         login({
+          userData: null,
           token,
-          refresh_token: refreshToken,
-          expires_in: Number(expiresIn),
+          refreshToken,
+          expiresIn: Number(expiresIn),
         }),
       );
-      navigate('/');
+      
     }
-  }, [dispatch, navigate]);
+    navigate('/');
+  }, []);
 
   return (
     <div className="flex items-center justify-center h-screen">

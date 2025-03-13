@@ -13,6 +13,7 @@
     "paths": {
       "@store/*": ["store/*"],
       "@pages/*": ["pages/*"],
+      "@types/*": ["types/*"],
       "@/*": ["*"]
     },
     "forceConsistentCasingInFileNames": true,
@@ -23,5 +24,5 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src", "src/types"]
 }

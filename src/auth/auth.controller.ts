@@ -1,12 +1,4 @@
-import {
-  Redirect,
-  Controller,
-  Get,
-  Logger,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Redirect, Controller, Get, Logger, Query } from '@nestjs/common';
 import { AuthService } from 'auth/auth.service';
 
 @Controller('auth')
@@ -14,8 +6,8 @@ export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
   constructor(private readonly authService: AuthService) {}
+
   @Get('login')
-  @UseGuards()
   login() {
     return {
       url: this.authService.generateAuthUrl(),
@@ -23,8 +15,7 @@ export class AuthController {
   }
 
   @Get('callback')
-  @Redirect("/")
-  @UseGuards()
+  @Redirect('/')
   async callback(@Query('code') code: string, @Query('state') state: string) {
     this.logger.debug(
       `Callback received with code: ${code} and state: ${state}`,
@@ -45,7 +36,10 @@ export class AuthController {
 
     const url = new URL('http://localhost:3000/access-token');
     url.searchParams.set('token', tokenData.access_token);
+    url.searchParams.set('refresh_token', tokenData.refresh_token);
     url.searchParams.set('expires_in', tokenData.expires_in.toString());
+
+    console.log('tokenData', tokenData);
 
     this.logger.debug(`Redirect URL: ${url.toString()}`);
 
