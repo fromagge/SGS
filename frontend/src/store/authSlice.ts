@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import User from '../types/user';
 import axios from 'axios';
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import Cookies from 'js-cookie';
+
+import User from 'types/user';
 
 interface AuthState {
   userData: User | null;
@@ -19,56 +21,91 @@ const defaultState: AuthState = {
   expiresIn: null,
 };
 
-// Load auth state from local storage
+// Cookie configuration
+const COOKIE_OPTIONS = {
+  secure: process.env.NODE_ENV === 'production', // Use secure in production
+  sameSite: 'strict' as const,
+  path: '/',
+};
+const TOKEN_COOKIE_NAME = 'auth_token';
+const REFRESH_TOKEN_COOKIE_NAME = 'auth_refresh_token';
+const EXPIRES_IN_COOKIE_NAME = 'auth_expires_in';
+
+// Load auth state from cookies
 const loadAuthState = (): AuthState => {
   try {
-    const serializedState = localStorage.getItem('authState');
-    if (serializedState === null) {
-      return defaultState;
-    }
-    return JSON.parse(serializedState);
-  } catch {
+    const token = Cookies.get(TOKEN_COOKIE_NAME);
+    const refreshToken = Cookies.get(REFRESH_TOKEN_COOKIE_NAME);
+    const expiresIn = Cookies.get(EXPIRES_IN_COOKIE_NAME);
+    const isLoggedIn = refreshToken !== null && refreshToken !== undefined;
+
+    return {
+      token: token || null,
+      refreshToken: refreshToken || null,
+      expiresIn: expiresIn ? Number(expiresIn) : null,
+      userData: null,
+      isLoggedIn,
+    };
+  } catch (error) {
+    console.log('Error loading auth state', error);
     return defaultState;
   }
 };
 
 const eraseAuthState = () => {
+  Cookies.remove(TOKEN_COOKIE_NAME, { path: '/' });
+  Cookies.remove(REFRESH_TOKEN_COOKIE_NAME, { path: '/' });
+  Cookies.remove(EXPIRES_IN_COOKIE_NAME, { path: '/' });
   localStorage.removeItem('authState');
 };
 
-const isTokenExpired = (expiresIn: number | null): boolean => {
+const isTokenExpired = (
+  token: string | null,
+  expiresIn: number | null,
+): boolean => {
+  if (token === null) return true;
   if (expiresIn === null) return true;
   return Date.now() > expiresIn;
 };
 
-// Save auth state to local storage
+// Save auth state to cookies
 const saveAuthState = (state: AuthState) => {
   try {
-    const serializedState = JSON.stringify(state);
-    localStorage.setItem('authState', serializedState);
+    const expiryDate = state.expiresIn ? new Date(state.expiresIn) : undefined;
+
+    if (state.token) {
+      Cookies.set(TOKEN_COOKIE_NAME, state.token, {
+        ...COOKIE_OPTIONS,
+        expires: expiryDate,
+      });
+    }
+    if (state.refreshToken) {
+      Cookies.set(REFRESH_TOKEN_COOKIE_NAME, state.refreshToken, {
+        ...COOKIE_OPTIONS,
+      });
+    }
+    if (state.expiresIn) {
+      Cookies.set(EXPIRES_IN_COOKIE_NAME, state.expiresIn.toString(), {
+        ...COOKIE_OPTIONS,
+      });
+    }
   } catch (err) {
-    console.error('Error saving auth state:', err);
+    console.error('Error saving auth state to cookies:', err);
   }
 };
-
-const initialState: AuthState = loadAuthState();
 
 export const checkTokenAsync = createAsyncThunk(
   'auth/checkToken',
   async (_, { getState, dispatch }) => {
     const state = getState() as { auth: AuthState };
     if (state.auth.isLoggedIn) {
-      if (isTokenExpired(state.auth.expiresIn)) {
+      if (isTokenExpired(state.auth.token, state.auth.expiresIn)) {
         try {
           const response = await axios.post('/api/auth/refresh', {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${state.auth.token}`,
-            },
+            refreshToken: state.auth.refreshToken,
           });
-          if (response.status === 200) {
-            dispatch(refresh(response.data));
-          }
+
+          dispatch(refresh(response.data));
         } catch (_) {
           dispatch(logout());
         }
@@ -87,23 +124,23 @@ export const getUserAsync = createAsyncThunk(
       }
       if (state.auth.token && state.auth.isLoggedIn) {
         try {
-          const { data, status } = await axios.get('/api/user/self', {
+          const { data } = await axios.get('/api/user/self', {
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${state.auth.token}`,
             },
           });
-          if (status === 200) {
-            return dispatch(setUser(data));
-          }
+
+          return dispatch(setUser(data));
         } catch (_) {
           return dispatch(logout());
         }
       }
-      dispatch(logout());
     }
   },
 );
+
+const initialState: AuthState = loadAuthState();
 
 const authSlice = createSlice({
   name: 'auth',
@@ -112,14 +149,16 @@ const authSlice = createSlice({
     refresh: (
       state,
       action: PayloadAction<{
-        token: string;
+        accessToken: string;
         refreshToken: string;
         expiresIn: string;
       }>,
     ) => {
-      state.token = action.payload.token;
+      state.token = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
       state.expiresIn = Date.now() + Number(action.payload.expiresIn) * 1000;
+      state.isLoggedIn = true;
+      saveAuthState(state);
     },
     login: (
       state,
@@ -148,6 +187,7 @@ const authSlice = createSlice({
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.userData = action.payload;
+      saveAuthState(state);
     },
   },
 });

@@ -3,14 +3,12 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
-  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { AuthService } from 'auth/auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  private readonly logger = new Logger(AuthGuard.name);
   constructor(private readonly authService: AuthService) {}
   canActivate(
     context: ExecutionContext,

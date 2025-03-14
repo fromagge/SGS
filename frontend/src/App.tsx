@@ -16,8 +16,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      dispatch(checkTokenAsync());
       dispatch(getUserAsync());
+      dispatch(checkTokenAsync());
     }
   }, [isLoggedIn, dispatch]);
 

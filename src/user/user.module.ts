@@ -3,7 +3,6 @@ import { HttpModule } from '@nestjs/axios';
 
 import { UserService } from 'user/user.service';
 import { UserController } from 'user/user.controller';
-import { AuthService } from 'auth/auth.service';
 
 @Module({
   imports: [
@@ -14,6 +13,6 @@ import { AuthService } from 'auth/auth.service';
     }),
   ],
   controllers: [UserController],
-  providers: [UserService, AuthService],
+  providers: [UserService],
 })
 export class UserModule {}

@@ -61,11 +61,10 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(@Req() req: any) {
-    const { token } = req.headers['authorization'];
     const { refreshToken } = req.body;
     if (!refreshToken) {
       throw new UnauthorizedException('No refresh token provided');
     }
-    return await this.authService.refreshClientSession(token, refreshToken);
+    return await this.authService.refreshClientSession(refreshToken);
   }
 }

@@ -159,6 +159,7 @@ export class OAuthService {
   }
 }
 
+@Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly jwtSecret = process.env.JWT_SECRET;
@@ -205,7 +206,7 @@ export class AuthService {
 
   public validateClientSession(token: string): ClientJwtPayload {
     try {
-        return this.validateToken(token);
+      return this.validateToken(token);
     } catch (error) {
       this.logger.debug('Invalid token', error);
       throw new UnauthorizedException('Invalid token');
@@ -243,7 +244,6 @@ export class AuthService {
   }
 
   public async refreshClientSession(
-    token: string,
     refreshToken: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     if (!this.jwtSecret) {
@@ -254,13 +254,7 @@ export class AuthService {
       refreshToken,
     ) as ClientJwtPayload;
 
-    const accessPayload: ClientJwtPayload = this.validateToken(token) as ClientJwtPayload;
-
-    if (accessPayload.email !== refreshPayload.email || accessPayload.id !== refreshPayload.id) {
-      throw new Error('Invalid refresh token');
-    }
-
-    const user = await this.supabase.getUser(accessPayload.email);
+    const user = await this.supabase.getUser(refreshPayload.email);
 
     if (!user) {
       throw new UnauthorizedException('User not found');

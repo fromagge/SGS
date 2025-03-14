@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
 import { Database } from 'supabase/supabase';
 import { User, Session } from 'supabase/types';
 
