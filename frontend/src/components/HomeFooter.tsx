@@ -33,6 +33,11 @@ const Logos = [
     name: 'Vite',
     alt: 'Vite',
   },
+  {
+    src: 'https://supabase.com/dashboard/img/supabase-logo.svg',
+    name: 'Supabase',
+    alt: 'Supabase',
+  },
 ];
 
 const HomeFooter: React.FC = () => {

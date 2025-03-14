@@ -1,11 +1,16 @@
-import { Injectable, CanActivate, Logger, ExecutionContext } from "@nestjs/common";
-import { Observable } from "rxjs";
-import { AuthService } from "auth/auth.service";
-
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { AuthService } from 'auth/auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-
+  private readonly logger = new Logger(AuthGuard.name);
   constructor(private readonly authService: AuthService) {}
   canActivate(
     context: ExecutionContext,
@@ -16,34 +21,26 @@ export class AuthGuard implements CanActivate {
     if (controller.name === 'AuthController') {
       return true;
     }
-
     return this.validateRequest(request);
   }
 
   private async validateRequest(request: any): Promise<any> {
-    const authHeader = request.headers.authorization;
-    if (!authHeader) {
-      return false;
-    }
-    if (!authHeader.startsWith('Bearer ')) {
-      return false;
+    const bearerToken = request.headers.authorization;
+    if (!bearerToken) {
+      throw new UnauthorizedException('No token provided');
     }
 
-    const token = authHeader.split(' ')[1];
+    if (!bearerToken.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Invalid token');
+    }
 
+    const token = bearerToken.split(' ')[1];
+    
     if (!token) {
-      return false;
+      throw new UnauthorizedException('Invalid token');
     }
 
-    const claims = await this.authService.verifyJwtToken(token, true);
-    if (!claims) {
-      return false;
-    }
-
-    console.log('token', token);
-
-    request.user = claims;
-    request.user.token = token;
-    return false;
+    request.user = this.authService.validateClientSession(token);
+    return true;
   }
 }

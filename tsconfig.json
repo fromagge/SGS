@@ -13,8 +13,8 @@
     "paths": {
       "user/*": ["user/*"],
       "contact/*": ["contact/*"],
-      "types/*": ["types/*"],
-      "auth/*": ["auth/*"]
+      "auth/*": ["auth/*"],
+      "supabase/*": ["supabase/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

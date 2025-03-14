@@ -1,25 +1,24 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwksClient } from 'jwks-rsa';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { URLSearchParams } from 'url';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
-import { JwtHeader, SigningKeyCallback, verify } from 'jsonwebtoken';
+import { JwtHeader, SigningKeyCallback, verify, sign } from 'jsonwebtoken';
+
+import { SupabaseService } from 'supabase/supabase.service';
+import { User } from 'supabase/types';
+import { ClientJwtPayload } from 'auth/types';
 
 @Injectable()
-export class AuthService {
-  private readonly JWT_ISSUER =
-    'https://identity.constantcontact.com/oauth2/aus1lm3ry9mF7x2Ja0h8';
-  private readonly logger = new Logger(AuthService.name);
+export class OAuthService {
+  private readonly JWT_ISSUER = process.env.CONSTANT_CONTACT_JWT_ISSUER;
+  private readonly logger = new Logger(OAuthService.name);
+
   private readonly stateExpirationTimeInSeconds = 60 * 5; // 5 minutes
   private states: Map<string, number> = new Map();
 
-  constructor(
-    private readonly httpService: HttpService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  constructor(private readonly httpService: HttpService) {}
 
   private generateState(): string {
     const state = Math.random().toString(36).substring(2, 15);
@@ -53,6 +52,24 @@ export class AuthService {
       timestamp + this.stateExpirationTimeInSeconds * 1000 < Date.now();
 
     return !isStateExpired;
+  }
+
+  public generateAuthUrl(): string {
+    const clientId = process.env.CONSTANT_CONTACT_CLIENT_ID ?? '';
+    const baseUrl =
+      'https://authz.constantcontact.com/oauth2/default/v1/authorize';
+
+    const url = new URL(baseUrl);
+    url.searchParams.set('client_id', clientId);
+    url.searchParams.set('redirect_uri', this.generateCallbackUrl());
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set(
+      'scope',
+      'offline_access account_update account_read contact_data',
+    );
+    url.searchParams.set('state', this.generateState());
+
+    return url.toString();
   }
 
   public async getAccessToken(code: string): Promise<{
@@ -89,24 +106,6 @@ export class AuthService {
     );
 
     return data;
-  }
-
-  public generateAuthUrl(): string {
-    const clientId = process.env.CONSTANT_CONTACT_CLIENT_ID ?? '';
-    const baseUrl =
-      'https://authz.constantcontact.com/oauth2/default/v1/authorize';
-
-    const url = new URL(baseUrl);
-    url.searchParams.set('client_id', clientId);
-    url.searchParams.set('redirect_uri', this.generateCallbackUrl());
-    url.searchParams.set('response_type', 'code');
-    url.searchParams.set(
-      'scope',
-      'offline_access account_update account_read contact_data',
-    );
-    url.searchParams.set('state', this.generateState());
-
-    return url.toString();
   }
 
   public async verifyJwtToken(
@@ -151,5 +150,122 @@ export class AuthService {
         },
       );
     });
+  }
+
+  public async refreshToken(refreshToken: string): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('refresh_token', refreshToken);
+    params.append('grant_type', 'refresh_token');
+  }
+}
+
+export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  private readonly jwtSecret = process.env.JWT_SECRET;
+  private readonly jwtTokenExpirationTime = Number(
+    process.env.JWT_EXPIRATION_TIME,
+  );
+  private readonly jwtRefreshTokenExpirationTime = Number(
+    process.env.JWT_REFRESH_EXPIRATION_TIME,
+  );
+
+  constructor(private readonly supabase: SupabaseService) {}
+
+  private isTokenExpired(token: string): boolean {
+    if (!this.jwtSecret) {
+      throw new Error('JWT_SECRET is not set');
+    }
+
+    const decoded = verify(token, this.jwtSecret);
+
+    if (typeof decoded !== 'object' || !decoded || !('exp' in decoded)) {
+      throw new Error('Invalid token');
+    }
+
+    return (decoded as ClientJwtPayload).exp! < Date.now() / 1000;
+  }
+
+  private validateToken(token: string): ClientJwtPayload {
+    if (!this.jwtSecret) {
+      throw new Error('JWT_SECRET is not set');
+    }
+
+    const decoded = verify(token, this.jwtSecret);
+
+    if (typeof decoded !== 'object' || !decoded || !('exp' in decoded)) {
+      throw new Error('Invalid token');
+    }
+
+    if (this.isTokenExpired(token)) {
+      throw new Error('Token expired');
+    }
+
+    return decoded as ClientJwtPayload;
+  }
+
+  public validateClientSession(token: string): ClientJwtPayload {
+    try {
+        return this.validateToken(token);
+    } catch (error) {
+      this.logger.debug('Invalid token', error);
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  public async createClientSession(
+    user: User,
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
+    if (!this.jwtSecret) {
+      throw new Error('JWT_SECRET is not set');
+    }
+
+    if (!this.jwtTokenExpirationTime || !this.jwtRefreshTokenExpirationTime) {
+      throw new Error('JWT_EXPIRATION_TIME is not set');
+    }
+
+    const payload: ClientJwtPayload = {
+      email: user.email,
+      id: user.id,
+    };
+
+    const accessToken = sign(payload, this.jwtSecret, {
+      expiresIn: this.jwtTokenExpirationTime,
+    });
+    const refreshToken = sign(payload, this.jwtSecret, {
+      expiresIn: this.jwtRefreshTokenExpirationTime,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: this.jwtTokenExpirationTime,
+    };
+  }
+
+  public async refreshClientSession(
+    token: string,
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!this.jwtSecret) {
+      throw new Error('JWT_SECRET is not set');
+    }
+
+    const refreshPayload: ClientJwtPayload = this.validateToken(
+      refreshToken,
+    ) as ClientJwtPayload;
+
+    const accessPayload: ClientJwtPayload = this.validateToken(token) as ClientJwtPayload;
+
+    if (accessPayload.email !== refreshPayload.email || accessPayload.id !== refreshPayload.id) {
+      throw new Error('Invalid refresh token');
+    }
+
+    const user = await this.supabase.getUser(accessPayload.email);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.createClientSession(user);
   }
 }

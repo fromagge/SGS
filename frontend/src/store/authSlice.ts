@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import User from '../types/user';
 import axios from 'axios';
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
@@ -59,14 +60,16 @@ export const checkTokenAsync = createAsyncThunk(
     if (state.auth.isLoggedIn) {
       if (isTokenExpired(state.auth.expiresIn)) {
         try {
-          const response = await axios.get('/api/auth/user', {
+          const response = await axios.post('/api/auth/refresh', {
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${state.auth.token}`,
             },
           });
-        } catch (error) {
-          console.error('Error refreshing token:', error);
+          if (response.status === 200) {
+            dispatch(refresh(response.data));
+          }
+        } catch (_) {
           dispatch(logout());
         }
       }
@@ -106,20 +109,32 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    refresh: (
+      state,
+      action: PayloadAction<{
+        token: string;
+        refreshToken: string;
+        expiresIn: string;
+      }>,
+    ) => {
+      state.token = action.payload.token;
+      state.refreshToken = action.payload.refreshToken;
+      state.expiresIn = Date.now() + Number(action.payload.expiresIn) * 1000;
+    },
     login: (
       state,
       action: PayloadAction<{
         userData: User | null;
         token: string | null;
         refreshToken: string | null;
-        expiresIn: number;
+        expiresIn: string;
       }>,
     ) => {
       state.isLoggedIn = true;
       state.userData = action.payload.userData;
       state.token = action.payload.token;
       state.refreshToken = action.payload.refreshToken;
-      state.expiresIn = Date.now() + action.payload.expiresIn * 1000;
+      state.expiresIn = Date.now() + Number(action.payload.expiresIn) * 1000;
       saveAuthState(state);
     },
     logout: (state) => {
@@ -137,5 +152,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { login, logout, setUser } = authSlice.actions;
+export const { login, logout, refresh, setUser } = authSlice.actions;
 export default authSlice.reducer;

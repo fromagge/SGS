@@ -8,7 +8,6 @@ const AccessToken = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('AccessToken');
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const refreshToken = params.get('refresh_token') ?? '';
@@ -20,10 +19,9 @@ const AccessToken = () => {
           userData: null,
           token,
           refreshToken,
-          expiresIn: Number(expiresIn),
+          expiresIn,
         }),
       );
-      
     }
     navigate('/');
   }, []);
