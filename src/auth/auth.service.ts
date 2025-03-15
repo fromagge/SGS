@@ -152,10 +152,34 @@ export class OAuthService {
     });
   }
 
+  public async isTokenExpired(token: string): Promise<boolean> {
+    const decoded = await this.verifyJwtToken(token, true);
+    if (!decoded || !decoded.exp) {
+      return true;
+    }
+    return decoded.exp < Date.now() / 1000;
+  }
+
   public async refreshToken(refreshToken: string): Promise<any> {
     const params = new URLSearchParams();
     params.append('refresh_token', refreshToken);
     params.append('grant_type', 'refresh_token');
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.post(`https://authz.constantcontact.com/oauth2/default/v1/token`, params, {
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Authorization: this.generateAuthHeader(),
+          },
+        }),
+      );
+      return data;
+    } catch (error) {
+      this.logger.error('Failed to refresh token', error);
+      return null;
+    }
   }
 }
 

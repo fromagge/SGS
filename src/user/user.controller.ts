@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Logger,
-  Post,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -17,17 +16,11 @@ export class UserController {
   @Get('self')
   async self(@Req() req: any) {
     this.logger.log('User requesting data', req.user);
-    return {
-      "email": "test@test.com",
-      "name": "test",
-      "picture": "https://picsum.photos/200/300"
-    }
     try {
-      return await this.userService.getUserSummary(req.user.token);
+      return await this.userService.getUserSummary(req.user);
     } catch (error) {
       this.logger.error('Error getting user summary', error);
-      throw new UnauthorizedException('Error getting user summary');
+      throw new UnauthorizedException('Session not found');
     }
   }
-
 }

@@ -10,7 +10,7 @@ import { SupabaseModule } from 'supabase/supabase.module';
 @Module({
   imports: [HttpModule, CacheModule.register(), SupabaseModule],
   providers: [AuthService, OAuthService, AuthGuard],
-  exports: [AuthService],
+  exports: [AuthService, OAuthService],
   controllers: [AuthController],
 })
 export class AuthModule {}

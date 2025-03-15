@@ -26,8 +26,9 @@ const App: React.FC = () => {
       <Routes>
         {isLoggedIn ? (
           <>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Dashboard view="dashboard" />} />
+            <Route path="/profile" element={<Navigate to="/" state={{ view: "profile" }} replace />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </>
         ) : (

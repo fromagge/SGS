@@ -33,7 +33,10 @@ export class SupabaseService {
     return SupabaseService.instance;
   }
 
-  public async getUser(email: string, throwError: boolean = true): Promise<User | null> {
+  public async getUser(
+    email: string,
+    throwError: boolean = true,
+  ): Promise<User | null> {
     const cacheKey = `user:${email}`;
     const cachedUser = await this.cacheManager.get<User>(cacheKey);
 
@@ -123,6 +126,19 @@ export class SupabaseService {
     await this.cacheManager.set(cacheKey, data, 60 * 10);
 
     return data;
+  }
+
+  public async updateSession(
+    session_id: number,
+    tokenData: {
+      access_token: string;
+      refresh_token: string;
+    },
+  ) {
+    return await SupabaseService.getInstance()
+      .from('sessions')
+      .update(tokenData)
+      .eq('id', session_id);
   }
 
   public async createSession(

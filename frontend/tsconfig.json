@@ -13,6 +13,7 @@
     "paths": {
       "@store/*": ["store/*"],
       "@pages/*": ["pages/*"],
+      "@components/*": ["components/*"],
       "@types/*": ["types/*"],
       "@/*": ["*"]
     },
