@@ -1,8 +1,6 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-
-import { Contact } from 'contact/contact.model';
+import { Injectable } from '@nestjs/common'; 
+import { ClientJwtPayload } from 'auth/types';
+import { ConstantContactAPIService } from 'api/api.service';
 
 interface ContactResponse {
   message: string;
@@ -10,25 +8,20 @@ interface ContactResponse {
 
 @Injectable()
 export class ContactService {
-  private readonly logger = new Logger(ContactService.name);
+  constructor(private readonly apiService: ConstantContactAPIService) {}
 
-  constructor(private readonly httpService: HttpService) {}
+  private async getAllContacts(user: ClientJwtPayload): Promise<Contact[]> {
+    return await this.apiService.getAllContacts(user.token);
+  }
 
   async createContact(contact: Contact): Promise<ContactResponse> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post<ContactResponse>('/contacts', contact),
-      );
-      this.logger.log(`Response: ${JSON.stringify(response.data)}`);
-      return response.data;
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error('Error creating contact', errorMessage);
-      throw new HttpException(
-        'Failed to create contact',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+    return await this.apiService.createContact(contact);
+  }
+
+  async getContacts(user: ClientJwtPayload, allContacts: boolean | undefined, from: Date | undefined): Promise<Contact[]> {
+    if (allContacts) {
+      return await this.getAllContacts(user);
     }
+    return (await this.apiService.getContacts(user.token, from)).contacts;
   }
 }

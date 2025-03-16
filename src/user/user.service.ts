@@ -44,6 +44,11 @@ export class UserService {
     return session;
   }
 
+  public async getUserToken(user: ClientJwtPayload) {
+    const session_data = await this.getSessionData(user);
+    return session_data.access_token;
+  }
+
   async getUserSummary(user: ClientJwtPayload) {
     const session_data = await this.getSessionData(user);
     return await this.apiService.getUserSummary(session_data.access_token);

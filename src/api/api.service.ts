@@ -2,12 +2,15 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+
+
 @Injectable()
 export class ConstantContactAPIService {
-  constructor(private readonly httpService: HttpService) {}
-
+  private readonly contactLimit = 500;
   private readonly baseUrl = process.env.CONSTANT_CONTACT_API_URL;
   private readonly logger = new Logger(ConstantContactAPIService.name);
+
+  constructor(private readonly httpService: HttpService) {}
 
   private getHeaders(token: string) {
     return {
@@ -16,11 +19,12 @@ export class ConstantContactAPIService {
     };
   }
 
-  private async get(path: string, token: string): Promise<any> {
+  private async get(path: string, token: string, query: any = {}): Promise<any> {
     try {
       const { data } = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}${path}`, {
           headers: this.getHeaders(token),
+          params: query,
         }),
       );
       return data;
@@ -45,6 +49,37 @@ export class ConstantContactAPIService {
   }
 
   async getUserSummary(token: string) {
-    return await this.get('/account/summary', token);
+    return await this.get('/v3/account/summary', token);
+  }
+  
+  async getAllContacts(token: string) : Promise<Contact[]> {
+    const response = await this.get('/v3/contacts', token);
+    if (response.contacts_count < this.contactLimit) {
+      return response;
+    }
+    const allContacts = response.contacts;
+    let nextLink = response._links.next.href;
+
+    while (nextLink) {
+      const nextResponse = await this.get(nextLink, token);
+      allContacts.push(...nextResponse.contacts);
+      nextLink = nextResponse._links?.next?.href;
+    }
+
+    return allContacts;
+  }
+
+  async getContacts(token: string, from: Date | undefined) : Promise<ContactsResponse> {
+    const query = {
+      limit: this.contactLimit,
+      status: 'all',
+      include_count: true,
+    };
+
+    if (from) {
+      query['updated_after'] = from.toISOString();
+    }
+
+    return await this.get('/contacts', token, query);
   }
 }
