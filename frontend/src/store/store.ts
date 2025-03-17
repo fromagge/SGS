@@ -1,12 +1,15 @@
-
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './authSlice';
-import contactReducer from './contactSlice';
+import contactReducer, { contactsApi } from './contactSlice';
+
 const store = configureStore({
   reducer: {
     auth: authReducer,
     contacts: contactReducer,
+    [contactsApi.reducerPath]: contactsApi.reducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(contactsApi.middleware),
 });
 
 export default store;

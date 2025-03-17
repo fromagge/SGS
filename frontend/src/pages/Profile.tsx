@@ -53,7 +53,7 @@ const Profile = () => {
             </div>
             <div>
               <p className="text-xs text-gray-500">Country Code</p>
-              <p className="font-medium text-gray-800">{user.country_code}</p>
+              <p className="font-medium text-gray-800 uppercase">{user.country_code}</p>
             </div>
           </div>
         </div>

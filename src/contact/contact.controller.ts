@@ -7,13 +7,18 @@ import {
   Query,
   BadRequestException,
   Req,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  FileTypeValidator,
+  Param,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { ContactService } from 'contact/contact.service';
 
 @Controller('contacts')
 export class ContactController {
-  private readonly logger = new Logger(ContactController.name);
 
   constructor(private readonly contactService: ContactService) {}
 
@@ -52,15 +57,48 @@ export class ContactController {
   }
 
   @Post()
-  async create(@Body() contact: Contact): Promise<ContactResponse> {
-    this.logger.log('Creating contact...');
-    this.logger.debug('Debug payload', contact);
-    const response = await this.contactService.createContact(contact);
-    this.logger.log('Contact created successfully');
-    return response;
+  async create(@Req() req: any, @Body() contact: Contact): Promise<any> {
+    const response = await this.contactService.createContact(req.user, contact);
+    return {
+      message: 'Contact created successfully',
+      contact: response,
+    };
   }
-}
 
-interface ContactResponse {
-  message: string;
+  @Post('bulk')
+  @UseInterceptors(FileInterceptor('file'))
+  async createBulk(
+    @Req() req: any,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new FileTypeValidator({
+            fileType:
+              /(csv|vnd.openxmlformats-officedocument.spreadsheetml.sheet|vnd.ms-excel)/,
+          }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<any> {
+    const response = await this.contactService.createBulkContacts(
+      req.user,
+      file,
+    );
+
+    return {
+      message: 'Contacts uploaded successfully',
+      activity_id: response?.activity_id,
+    };
+  }
+
+  @Get('bulk/:activityId')
+  async isBulkUploading(
+    @Req() req: any,
+    @Param('activityId') activityId: string,
+  ): Promise<any> {
+    return {
+      isDone: await this.contactService.isBulkUploading(req.user, activityId),
+    };
+  }
 }

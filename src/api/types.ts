@@ -8,6 +8,10 @@ type ContactsResponse = {
   };
 };
 
+type CreateContact = {
+    
+}
+
 type Contact = {
   contact_id: string;
   email_address: {

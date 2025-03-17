@@ -27,9 +27,10 @@ const COOKIE_OPTIONS = {
   sameSite: 'strict' as const,
   path: '/',
 };
-const TOKEN_COOKIE_NAME = 'auth_token';
-const REFRESH_TOKEN_COOKIE_NAME = 'auth_refresh_token';
-const EXPIRES_IN_COOKIE_NAME = 'auth_expires_in';
+
+export const TOKEN_COOKIE_NAME = 'auth_token';
+export const REFRESH_TOKEN_COOKIE_NAME = 'auth_refresh_token';
+export const EXPIRES_IN_COOKIE_NAME = 'auth_expires_in';
 
 // Load auth state from cookies
 const loadAuthState = (): AuthState => {

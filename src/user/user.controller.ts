@@ -15,7 +15,6 @@ export class UserController {
 
   @Get('self')
   async self(@Req() req: any) {
-    this.logger.log('User requesting data', req.user);
     try {
       return await this.userService.getUserSummary(req.user);
     } catch (error) {
